@@ -69,16 +69,30 @@ function commitWork(fiber) {
   if (!fiber) {
     return
   }
-  const domParent = fiber.parent.dom
+
+  let domParentFiber = fiber.parent
+  while (!domParentFiber) {
+    domParentFiber = domParentFiber.parent
+  }
+  const domParent =domParentFiber.dom
+
   if (fiber.effectionTag === 'PLACEMENT' && fiber.dom !== null) {
     domParent.appendChild(fiber.dom)
   } else if (fiber.effctionTag === 'UPDATE' && fiber.dom !== null) {
     updateDOM(fiber.dom, fiber.alternate.props, fiber.props)
   } else if (fiber.effectionTag === 'DELETION') {
-    domParent.removeChild(fiber.dom)
+    commitDeletion(fiber, domParent)
   }
   commitWork(fiber.child)
   commitWork(fiber.sibling)
+}
+
+function commitDeletion(fiber, domParent) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom)
+  } else {
+    commitDeletion(fiber, domParent)
+  }
 }
 
 const isEvent = key => key.startsWith('on')
