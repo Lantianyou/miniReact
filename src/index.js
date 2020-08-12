@@ -1,12 +1,9 @@
 import Didact from './didreact'
 
 /** @jsx Didact.createElement */
-const element = (
-  <div id="foo">
-    <a href='/'>bar</a>
-    <b />
-  </div>
-)
-
+function App(props) {
+  return <h1>hi {props.name}</h1>
+}
+const element = <App name="foo" />
 const container = document.getElementById('root')
 Didact.render(element, container)
