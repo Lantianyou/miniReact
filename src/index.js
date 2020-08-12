@@ -1,11 +1,11 @@
-import Didact from './didreact'
+import Didact, { useState } from "./didreact";
 
-
-function App(props) {
-  return <h1>{props.name}</h1>
+function Counter(props) {
+  const [state, setState] = useState(0);
+  return <h1 onClick={() => setState(state + 1)}>count {state}</h1>;
 }
 /** @jsx Didact.createElement */
-const element = <App name="foo" >hi</App>
+const element = <Counter name="foo">hi</Counter>;
 
-const container = document.getElementById('root')
-Didact.render(element, container)
+const container = document.getElementById("root");
+Didact.render(element, container);

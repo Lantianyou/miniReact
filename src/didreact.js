@@ -89,6 +89,7 @@ function commitWork(fiber) {
 
   let domParentFiber = fiber.parent;
   // functional fiber does not have a dom
+  // go up the dom tree
   while (!domParentFiber.dom) {
     domParentFiber = domParentFiber.parent;
   }
@@ -159,7 +160,6 @@ function performUnitOfWork(fiber) {
     updateHostComponent(fiber);
   }
 
-  
   // 1. child
   if (fiber.child) {
     return fiber.child;
@@ -175,11 +175,42 @@ function performUnitOfWork(fiber) {
   }
 }
 
-// let wipFiber = null
+let wipFiber = null;
+let hookIndex = null;
 function updateFunctionalComponent(fiber) {
-  // wipFiber = fiber
+  // fiber of function component does not have dom node
+  wipFiber = fiber;
+  hookIndex = 0;
+  wipFiber.hooks = [];
   const children = [fiber.type(fiber.props)];
+  // children by running function
   reconcileChildren(fiber, children);
+}
+
+export function useState(initial) {
+  const oldHook =
+    wipFiber.alternate &&
+    wipFiber.alternate.hooks &&
+    wipFiber.alternate.hooks[hookIndex];
+  const hook = { state: oldHook ? oldHook.state : initial, queue: [] };
+
+  const actions = oldHook ? oldHook.queue : [];
+  actions.forEach((action) => {
+    hook.state = action(hook.state);
+  });
+  
+  const setState = (action) => {
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    };
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+  wipFiber.hooks.push(hook);
+  hookIndex++;
+  return [hook.state, setState];
 }
 
 function updateHostComponent(fiber) {
