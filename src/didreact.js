@@ -235,9 +235,9 @@ function reconcileChildren(wipFiber, elements) {
       newFiber = {
         type: oldFiber.type,
         props: element.props,
-        dom: oldFiber.dom,
         parent: wipFiber,
         alternate: oldFiber,
+        dom: oldFiber.dom,
         effectTag: "UPDATE",
       };
     }
