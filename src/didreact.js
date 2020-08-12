@@ -64,20 +64,29 @@ function commitRoot() {
   wipRoot = null
 }
 
-
-const isProperty = key => key !== 'children'
+const isEvent = key => key.startsWith('on')
+const isProperty = key => key !== 'children' && !isEvent(key)
 const isNew = (prev, next) => key => prev[key] !== next[key]
 const isGone = (prev, next) => key => !(key in next)
 
 function updateDOM(dom, prevProps, nextProps) {
-  Object.keys(prevProps)
-    .filter(isProperty)
-    .filter(isGone(prevProps, nextProps))
-    .forEach(name => dom[name] = "")
   
-  Object.keys(prevProps)
-    .filter(isProperty)
-    .filter(isNew(prevProps, nextProps))
+ Object.keys(prevProps)
+    .filter(isEvent)
+    .filter(
+      key =>
+        !(key in nextProps) ||
+        isNew(prevProps, nextProps)(key)
+    )
+    .forEach(name => {
+      const eventType = name
+        .toLowerCase()
+        .substring(2)
+      dom.removeEventListener(
+        eventType,
+        prevProps[name]
+      )
+    })
 }
 
 function commitWork(fiber) {
