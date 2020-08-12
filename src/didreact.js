@@ -40,7 +40,10 @@ function updateDOM(dom: Element, prevProps: Object, nextProps: Object) {
   //Remove old or changed event listeners
   Object.keys(prevProps)
     .filter(isEvent)
-    .filter((key) => !(key in nextProps) || isNew(prevProps, nextProps)(key))
+    .filter(
+      (key) =>
+        isGone(prevProps, nextProps)(key) || isNew(prevProps, nextProps)(key)
+    )
     .forEach((name) => {
       const eventType = name.toLowerCase().substring(2);
       dom.removeEventListener(eventType, prevProps[name]);
@@ -85,6 +88,7 @@ function commitWork(fiber) {
   }
 
   let domParentFiber = fiber.parent;
+  // functional fiber does not have a dom
   while (!domParentFiber.dom) {
     domParentFiber = domParentFiber.parent;
   }
@@ -120,6 +124,7 @@ function render(element, container) {
   };
   deletions = [];
   nextUnitOfWork = wipRoot;
+  // set nextUnitOfWork => workloop can start
 }
 
 let nextUnitOfWork = null;
@@ -129,13 +134,15 @@ let deletions = null;
 
 function workLoop(deadline) {
   let shouldYield = false;
+
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
-
     shouldYield = deadline.timeRemaining() < 1;
   }
 
   if (!nextUnitOfWork && wipRoot) {
+    // phase 1 over
+    // phase 2 begin
     commitRoot();
   }
 
@@ -145,14 +152,20 @@ requestIdleCallback(workLoop);
 
 function performUnitOfWork(fiber) {
   const isFunctionComponent = fiber.type instanceof Function;
+
   if (isFunctionComponent) {
     updateFunctionalComponent(fiber);
   } else {
     updateHostComponent(fiber);
   }
+
+  
+  // 1. child
   if (fiber.child) {
     return fiber.child;
   }
+
+  // 2. sibling or parent sibling
   let nextFiber = fiber;
   while (nextFiber) {
     if (nextFiber.sibling) {
