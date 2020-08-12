@@ -137,6 +137,7 @@ function workLoop(deadline) {
   let shouldYield = false;
 
   while (nextUnitOfWork && !shouldYield) {
+    debugger;
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
@@ -177,6 +178,7 @@ function performUnitOfWork(fiber) {
 
 let wipFiber = null;
 let hookIndex = null;
+
 function updateFunctionalComponent(fiber) {
   // fiber of function component does not have dom node
   wipFiber = fiber;
@@ -192,14 +194,19 @@ export function useState(initial) {
     wipFiber.alternate &&
     wipFiber.alternate.hooks &&
     wipFiber.alternate.hooks[hookIndex];
-  const hook = { state: oldHook ? oldHook.state : initial, queue: [] };
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: [],
+  };
 
   const actions = oldHook ? oldHook.queue : [];
   actions.forEach((action) => {
     hook.state = action(hook.state);
   });
-  
+
   const setState = (action) => {
+    hook.queue.push(action);
+    debugger;
     wipRoot = {
       dom: currentRoot.dom,
       props: currentRoot.props,
@@ -208,6 +215,7 @@ export function useState(initial) {
     nextUnitOfWork = wipRoot;
     deletions = [];
   };
+
   wipFiber.hooks.push(hook);
   hookIndex++;
   return [hook.state, setState];
