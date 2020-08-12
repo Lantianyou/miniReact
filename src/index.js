@@ -1,10 +1,11 @@
-import Didact, { useState } from "./didreact";
+import Didact from "./didreact";
 
+const { useState } = Didact;
 function Counter(props) {
   const [state, setState] = useState(0);
   return (
     <h1>
-      count {state}
+      count {state} {props.name}
       <button onClick={() => setState((state) => state + 1)}>click</button>
     </h1>
   );

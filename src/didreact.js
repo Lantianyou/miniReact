@@ -137,7 +137,6 @@ function workLoop(deadline) {
   let shouldYield = false;
 
   while (nextUnitOfWork && !shouldYield) {
-    debugger;
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
@@ -154,19 +153,14 @@ requestIdleCallback(workLoop);
 
 function performUnitOfWork(fiber) {
   const isFunctionComponent = fiber.type instanceof Function;
-
   if (isFunctionComponent) {
-    updateFunctionalComponent(fiber);
+    updateFunctionComponent(fiber);
   } else {
     updateHostComponent(fiber);
   }
-
-  // 1. child
   if (fiber.child) {
     return fiber.child;
   }
-
-  // 2. sibling or parent sibling
   let nextFiber = fiber;
   while (nextFiber) {
     if (nextFiber.sibling) {
@@ -179,7 +173,7 @@ function performUnitOfWork(fiber) {
 let wipFiber = null;
 let hookIndex = null;
 
-export function updateFunctionalComponent(fiber) {
+function updateFunctionComponent(fiber) {
   wipFiber = fiber;
   hookIndex = 0;
   wipFiber.hooks = [];
@@ -222,7 +216,6 @@ function updateHostComponent(fiber) {
   if (!fiber.dom) {
     fiber.dom = createDOM(fiber);
   }
-
   reconcileChildren(fiber, fiber.props.children);
 }
 
@@ -231,7 +224,7 @@ function reconcileChildren(wipFiber, elements) {
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
   let prevSibling = null;
 
-  while (index < elements.length || oldFiber !== null) {
+  while (index < elements.length || oldFiber != null) {
     const element = elements[index];
     let newFiber = null;
 
@@ -241,9 +234,9 @@ function reconcileChildren(wipFiber, elements) {
       newFiber = {
         type: oldFiber.type,
         props: element.props,
+        dom: oldFiber.dom,
         parent: wipFiber,
         alternate: oldFiber,
-        dom: oldFiber.dom,
         effectTag: "UPDATE",
       };
     }
@@ -280,6 +273,7 @@ function reconcileChildren(wipFiber, elements) {
 const Didact = {
   createElement,
   render,
+  useState,
 };
 
 export default Didact;
