@@ -1,5 +1,3 @@
-import { findByRole } from "@testing-library/react";
-
 function createElement(type, props, ...children) {
   return {
     type,
@@ -44,15 +42,32 @@ function createDOM(fiber) {
 
 function render(element, container) {
   // set nextUnitOfWork to the root of the dom tree
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element]
     }
-  }  
+  }
+  nextUnitOfWork = wipRoot
 }
 
 let nextUnitOfWork = null;
+let wipRoot = null
+
+function commitRoot() {
+  commitRoot(wipRoot)
+  wipRoot = null
+}
+
+function commitWork(fiber) {
+  if (!fiber) {
+    return
+  }
+  const domParent = fiber.parent.dom
+  domParent.appendChild(fiber.dom)
+  commitWork(fiber.child)
+  commitWork(fiber.sibling)
+}
 
 function workLoop(deadline) {
   let shouldYield = false
@@ -60,7 +75,10 @@ function workLoop(deadline) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
     shouldYield = deadline.timeRemaining() < 1
   }
-  requestIdleCallback(workLoop)
+
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot()
+  }
 }
 requestIdleCallback(workLoop)
 
@@ -68,9 +86,6 @@ function performUnitOfWork(fiber) {
   // add dom node
   if (!fiber.dom) {
     fiber.dom = createDOM(fiber)
-  }
-  if (!fiber.parent) {
-    fiber.parent.dom.appendChild(fiber.dom)
   }
   // create new fibers
 
