@@ -179,17 +179,15 @@ function performUnitOfWork(fiber) {
 let wipFiber = null;
 let hookIndex = null;
 
-function updateFunctionalComponent(fiber) {
-  // fiber of function component does not have dom node
+export function updateFunctionalComponent(fiber) {
   wipFiber = fiber;
   hookIndex = 0;
   wipFiber.hooks = [];
   const children = [fiber.type(fiber.props)];
-  // children by running function
   reconcileChildren(fiber, children);
 }
 
-export function useState(initial) {
+function useState(initial) {
   const oldHook =
     wipFiber.alternate &&
     wipFiber.alternate.hooks &&
@@ -206,7 +204,6 @@ export function useState(initial) {
 
   const setState = (action) => {
     hook.queue.push(action);
-    debugger;
     wipRoot = {
       dom: currentRoot.dom,
       props: currentRoot.props,
