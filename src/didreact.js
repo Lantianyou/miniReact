@@ -54,13 +54,13 @@ function render(element, container) {
 }
 
 let nextUnitOfWork = null;
-let wipRoot = null
-let currentRoot = null
-let deletions = null
+let wipRoot = null;
+let currentRoot = null;
+let deletions = null;
 
 function commitRoot() {
   deletions.forEach(commitWork)
-  commitRoot(wipRoot)
+  commitWork(wipRoot)
   currentRoot = wipRoot
   wipRoot = null
 }
@@ -70,11 +70,12 @@ function commitWork(fiber) {
     return
   }
 
+  console.log(fiber)
   let domParentFiber = fiber.parent
-  while (!domParentFiber) {
+  while (!domParentFiber.dom) {
     domParentFiber = domParentFiber.parent
   }
-  const domParent =domParentFiber.dom
+  const domParent = domParentFiber.dom
 
   if (fiber.effectionTag === 'PLACEMENT' && fiber.dom !== null) {
     domParent.appendChild(fiber.dom)
@@ -83,6 +84,7 @@ function commitWork(fiber) {
   } else if (fiber.effectionTag === 'DELETION') {
     commitDeletion(fiber, domParent)
   }
+
   commitWork(fiber.child)
   commitWork(fiber.sibling)
 }
@@ -149,18 +151,22 @@ function workLoop(deadline) {
   let shouldYield = false
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
+
     shouldYield = deadline.timeRemaining() < 1
   }
 
   if (!nextUnitOfWork && wipRoot) {
     commitRoot()
   }
+
+  requestIdleCallback(workLoop)
 }
 
 requestIdleCallback(workLoop)
 
 function performUnitOfWork(fiber) {
   const isFunctionalComponent = fiber.type instanceof Function
+
   if (isFunctionalComponent) {
     updateFunctionalComponent(fiber)
   } else {
@@ -242,7 +248,6 @@ function reconcileChildren(wipFiber, elements) {
 
     if (oldFiber) {
       oldFiber = oldFiber.sibling
-      deletions.push(oldFiber)
     }
 
     
