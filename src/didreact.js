@@ -30,12 +30,7 @@ function createDOM(fiber) {
       document.createTextNode("") :
       document.createElement(fiber.type)
   
-  Object
-    .keys(fiber.props)
-    .filter(isProperty)
-    .forEach(name =>
-      dom[name] = fiber.props[name]
-  );
+  updateDOM(dom, {}, fiber.props)
 
   return dom
 }
@@ -60,7 +55,7 @@ let deletions = null;
 
 function commitRoot() {
   deletions.forEach(commitWork)
-  commitWork(wipRoot)
+  commitWork(wipRoot.child)
   currentRoot = wipRoot
   wipRoot = null
 }
@@ -70,7 +65,6 @@ function commitWork(fiber) {
     return
   }
 
-  console.log(fiber)
   let domParentFiber = fiber.parent
   while (!domParentFiber.dom) {
     domParentFiber = domParentFiber.parent
@@ -102,13 +96,8 @@ const isProperty = key => key !== 'children' && !isEvent(key)
 const isNew = (prev, next) => key => prev[key] !== next[key]
 const isGone = (prev, next) => key => !(key in next)
 
-function updateDOM(dom, prevProps, nextProps) {
-  Object.keys(prevProps)
-    .filter(isProperty)
-    .filter(isGone(prevProps, nextProps))
-    .forEach(name => dom[name] = "")
-  
-  // remove old event listener
+function updateDOM(dom: Element, prevProps: Object, nextProps: Object) {
+  //Remove old or changed event listeners
   Object.keys(prevProps)
     .filter(isEvent)
     .filter(
@@ -125,14 +114,25 @@ function updateDOM(dom, prevProps, nextProps) {
         prevProps[name]
       )
     })
-  
+
+  // Remove old properties
+  Object.keys(prevProps)
+    .filter(isProperty)
+    .filter(isGone(prevProps, nextProps))
+    .forEach(name => {
+      dom[name] = ""
+    })
+
+  // Set new or changed properties
   Object.keys(nextProps)
     .filter(isProperty)
     .filter(isNew(prevProps, nextProps))
-    .forEach(name => dom[name] = nextProps[name])
-  
-  // add new event listener
-   Object.keys(nextProps)
+    .forEach(name => {
+      dom[name] = nextProps[name]
+    })
+
+  // Add event listeners
+  Object.keys(nextProps)
     .filter(isEvent)
     .filter(isNew(prevProps, nextProps))
     .forEach(name => {
@@ -161,7 +161,6 @@ function workLoop(deadline) {
 
   requestIdleCallback(workLoop)
 }
-
 requestIdleCallback(workLoop)
 
 function performUnitOfWork(fiber) {
@@ -172,10 +171,6 @@ function performUnitOfWork(fiber) {
   } else {
     updateHostComponent(fiber)
   }
-  // add dom node
-  if (!fiber.dom) {
-    fiber.dom = createDOM(fiber)
-  }
 
   // create new fibers
   const elements = fiber.props.children
@@ -185,6 +180,7 @@ function performUnitOfWork(fiber) {
   if (fiber.child) {
     return fiber.child
   }
+
   let nextFiber = fiber
   while (nextFiber) {
     if (nextFiber.sbling) {
@@ -194,27 +190,38 @@ function performUnitOfWork(fiber) {
   }
 }
 
+// let wipFiber = null
 function updateFunctionalComponent(fiber) { 
+  // wipFiber = fiber
   const children = [fiber.type(fiber.props)]
   reconcileChildren(fiber, children)
 }
 
 function updateHostComponent(fiber) {
-  if (fiber.dom) {
-    fiber.com = createDOM(fiber)
+  if (!fiber.dom) {
+    fiber.dom = createDOM(fiber)
   }
+
   reconcileChildren(fiber, fiber.props.children)
 }
 
-function reconcileChildren(wipFiber, elements) {
+type Fiber = {
+  type: string,
+  props: object,
+  parent: Fiber,
+  child: Fiber,
+  alternate: Fiber | null,
+  dom: Element,
+  effectTag: "UPDATE" | "PLACEMENT" | "DELETION"
+}
+
+function reconcileChildren(wipFiber: Fiber, elements) {
   let index = 0
   let oldFiber = wipRoot.alternate && wipRoot.alternate.child
-
   let prevSibling = null
 
   while (index < elements.length || oldFiber !== null) {
     const element = elements[index];
-
     let newFiber = null
     
     const sameType = oldFiber && element && element.type === oldFiber.type
@@ -243,14 +250,11 @@ function reconcileChildren(wipFiber, elements) {
     if (oldFiber && !sameType) {
       oldFiber.effectTag = "DELETION"
       deletions.push(oldFiber)
-      
     }
 
     if (oldFiber) {
       oldFiber = oldFiber.sibling
     }
-
-    
 
     if (index === 0) {
       wipFiber.child = newFiber
